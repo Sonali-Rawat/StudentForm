@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Enrollment Form</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="path/to/jpdb-commons.js"></script> <!-- Replace with actual path -->
+</head>
+<body>
+    <h2>Student Enrollment Form</h2>
+    <form id="studentForm">
+        <label for="rollNo">Roll No:</label>
+        <input type="text" id="rollNo" name="rollNo" required><br><br>
+
+        <label for="fullName">Full Name:</label>
+        <input type="text" id="fullName" name="fullName" disabled required><br><br>
+
+        <label for="class">Class:</label>
+        <input type="text" id="class" name="class" disabled required><br><br>
+
+        <label for="birthDate">Birth Date:</label>
+        <input type="date" id="birthDate" name="birthDate" disabled required><br><br>
+
+        <label for="address">Address:</label>
+        <input type="text" id="address" name="address" disabled required><br><br>
+
+        <label for="enrollmentDate">Enrollment Date:</label>
+        <input type="date" id="enrollmentDate" name="enrollmentDate" disabled required><br><br>
+
+        <button type="button" id="saveBtn" onclick="saveData()" disabled>Save</button>
+        <button type="button" id="updateBtn" onclick="updateData()" disabled>Update</button>
+        <button type="button" id="resetBtn" onclick="resetForm()">Reset</button>
+    </form>
+
+    <script>
+        const dbBaseUrl = "http://api.login2explore.com:5577"; // Replace with your actual DB Base URL
+        const dbName = "SCHOOL-DB";
+        const relationName = "STUDENT-TABLE";
+        const connToken = "YOUR-CONNECTION-TOKEN"; // Replace with your actual token
+
+        $(document).ready(function () {
+            $('#rollNo').focus();
+            disableAllFields(true);
+        });
+
+        function disableAllFields(disable) {
+            $('#fullName').prop('disabled', disable);
+            $('#class').prop('disabled', disable);
+            $('#birthDate').prop('disabled', disable);
+            $('#address').prop('disabled', disable);
+            $('#enrollmentDate').prop('disabled', disable);
+            $('#saveBtn').prop('disabled', disable);
+            $('#updateBtn').prop('disabled', disable);
+            $('#resetBtn').prop('disabled', !disable);
+        }
+
+        $('#rollNo').on('blur', function () {
+            const rollNo = $('#rollNo').val();
+            if (rollNo) {
+                checkRollNoExists(rollNo);
+            } else {
+                alert('Please enter a Roll No.');
+            }
+        });
+
+        function checkRollNoExists(rollNo) {
+            const reqString = createGET_BY_KEYRequest(connToken, dbName, relationName, JSON.stringify({ "Roll-No": rollNo }));
+            jQuery.ajaxSetup({ async: false });
+            const result = executeCommandAtGivenBaseUrl(reqString, dbBaseUrl, "/api/irl");
+            jQuery.ajaxSetup({ async: true });
+
+            if (result.status === 400) {
+                disableAllFields(false);
+                $('#saveBtn').prop('disabled', false);
+                $('#rollNo').prop('disabled', true);
+                $('#fullName').focus();
+            } else if (result.status === 200) {
+                const record = JSON.parse(result.data);
+                populateForm(record);
+                $('#updateBtn').prop('disabled', false);
+                $('#rollNo').prop('disabled', true);
+            } else {
+                alert('Error occurred. Please try again.');
+            }
+        }
+
+        function populateForm(record) {
+            $('#fullName').val(record['Full-Name']);
+            $('#class').val(record['Class']);
+            $('#birthDate').val(record['Birth-Date']);
+            $('#address').val(record['Address']);
+            $('#enrollmentDate').val(record['Enrollment-Date']);
+            disableAllFields(false);
+            $('#fullName').focus();
+        }
+
+        function saveData() {
+            if (!validateForm()) {
+                alert('Please fill in all fields.');
+                return;
+            }
+
+            const jsonStr = {
+                "Roll-No": $('#rollNo').val(),
+                "Full-Name": $('#fullName').val(),
+                "Class": $('#class').val(),
+                "Birth-Date": $('#birthDate').val(),
+                "Address": $('#address').val(),
+                "Enrollment-Date": $('#enrollmentDate').val()
+            };
+
+            const reqString = createPUTRequest(connToken, JSON.stringify(jsonStr), dbName, relationName);
+            jQuery.ajaxSetup({ async: false });
+            const result = executeCommandAtGivenBaseUrl(reqString, dbBaseUrl, "/api/iml");
+            jQuery.ajaxSetup({ async: true });
+
+            if (result.status === 200) {
+                alert('Data saved successfully.');
+                resetForm();
+            } else {
+                alert('Failed to save data.');
+            }
+        }
+
+        function updateData() {
+            if (!validateForm()) {
+                alert('Please fill in all fields.');
+                return;
+            }
+
+            const jsonStr = {
+                "Roll-No": $('#rollNo').val(),
+                "Full-Name": $('#fullName').val(),
+                "Class": $('#class').val(),
+                "Birth-Date": $('#birthDate').val(),
+                "Address": $('#address').val(),
+                "Enrollment-Date": $('#enrollmentDate').val()
+            };
+
+            const reqString = createUPDATERecordRequest(connToken, JSON.stringify(jsonStr), dbName, relationName);
+            jQuery.ajaxSetup({ async: false });
+            const result = executeCommandAtGivenBaseUrl(reqString, dbBaseUrl, "/api/iml");
+            jQuery.ajaxSetup({ async: true });
+
+            if (result.status === 200) {
+                alert('Data updated successfully.');
+                resetForm();
+            } else {
+                alert('Failed to update data.');
+            }
+        }
+
+        function validateForm() {
+            return $('#fullName').val() && $('#class').val() && $('#birthDate').val() && $('#address').val() && $('#enrollmentDate').val();
+        }
+
+        function resetForm() {
+            $('#studentForm')[0].reset();
+            disableAllFields(true);
+            $('#rollNo').prop('disabled', false);
+            $('#rollNo').focus();
+        }
+    </script>
+</body>
+</html>
